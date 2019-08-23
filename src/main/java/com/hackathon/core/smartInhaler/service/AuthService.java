@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -102,15 +103,16 @@ public class AuthService {
     public ResponseEntity getUserDashboardDetails(String authorization, String userGuid) throws IOException, ParseException {
         log.info("Inside AuthService.getUserDashboardDetails");
         Map<String, Object> map = getUserDetails(authorization, userGuid);
-        if(((double)map.get("Temp") <= 18 || (double)map.get("Temp") >= 35)
-            && ((double)map.get("Humidity") <= 30 || (double)map.get("Humidity") >= 60)) {
+        if((Double.valueOf(map.get("Temp").toString()) <= 18 || Double.valueOf(map.get("Temp").toString()) >= 35)
+            && (Double.valueOf(map.get("Humidity").toString()) <= 30 || Double.valueOf(map.get("Humidity").toString()) >= 60)) {
             map.put("Comfortable", false);
         } else{
             map.put("Comfortable", true);
         }
         //set next Dose time
         if(!"missed".equals(map.get("LastDose").toString())) {
-            map.put("NextDose", getNextDoseTime(map.get("LastDose").toString(), map.get("Gap").toString()));
+            String nextDose = getNextDoseTime(map.get("LastDose").toString(), map.get("Gap").toString());
+            map.put("NextDose", nextDose);
         } else{
             map.put("NextDose", "Now");
         }
@@ -129,7 +131,7 @@ public class AuthService {
      */
     private String getNextDoseTime(String lastDose, String gap) throws ParseException {
         log.info("Inside AuthService.getNextDoseTime");
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Calendar cal = Calendar.getInstance(); // creates calendar
         cal.setTime(getParsedDate(lastDose)); // sets calendar time/date
         cal.add(Calendar.HOUR_OF_DAY, Integer.parseInt(gap)); // adds one hour
@@ -144,7 +146,8 @@ public class AuthService {
      * @return
      * @throws IOException
      */
-    public Map<String, Object> getUserDetails(String authorization, String userGuid) throws IOException {
+    public Map<String, Object> getUserDetails(String authorization, String userGuid) throws IOException, ParseException {
+        DecimalFormat df = new DecimalFormat("0.00");
         log.info("Inside AuthService.getUserDetails");
         String url = ModuleUrls.userUrl + "/" + userGuid;
         String deviceUrl = ModuleUrls.deviceUrl + "/user/" + userGuid;
@@ -190,10 +193,10 @@ public class AuthService {
                     map1.put("Dosage", map.get("attributeValue"));
                 }
                 if (map.get("attributeName").toString().contains("humidity")) {
-                    map1.put("Humidity", Double.valueOf(map.get("attributeValue").toString()));
+                    map1.put("Humidity", df.format(Double.valueOf(map.get("attributeValue").toString())));
                 }
                 if (map.get("attributeName").toString().contains("temp")) {
-                    map1.put("Temp", Double.valueOf(map.get("attributeValue").toString()));
+                    map1.put("Temp", df.format(Double.valueOf(map.get("attributeValue").toString())));
                 }
             }
 
@@ -218,7 +221,7 @@ public class AuthService {
      * @param uniqueId
      * @throws IOException
      */
-    private void getMyInhalerDetails(Map<String, Object> map1, HttpEntity<LoginRequest> entity, String authorization, String uniqueId) throws IOException {
+    private void getMyInhalerDetails(Map<String, Object> map1, HttpEntity<LoginRequest> entity, String authorization, String uniqueId) throws IOException, ParseException {
         log.info("Inside AuthService.getMyInhalerDetails");
         String deviceUrl = ModuleUrls.deviceUrl + "/uniqueId/" + uniqueId;
         ResponseEntity deviceResponse = restTemplate.exchange(deviceUrl, HttpMethod.GET, entity, String.class);
@@ -263,7 +266,7 @@ public class AuthService {
      * @return
      * @throws IOException
      */
-    private int calculateSpraysConsumed(String authorization, Map<String, Object> map1) throws IOException {
+    private int calculateSpraysConsumed(String authorization, Map<String, Object> map1) throws IOException, ParseException {
         log.info("Inside AuthService.calculateSpraysConsumed");
         ResponseEntity dosageHistoryResp = getAttributeDetails(authorization, setStartDate(), setCurrentDate(), Constant.deviceUniqueId);
         String historyResp = dosageHistoryResp.getBody().toString();
