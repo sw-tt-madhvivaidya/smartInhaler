@@ -103,7 +103,7 @@ public class AuthService {
         log.info("Inside AuthService.getUserDashboardDetails");
         Map<String, Object> map = getUserDetails(authorization, userGuid);
         if(((double)map.get("Temp") <= 18 || (double)map.get("Temp") >= 35)
-            && ((Integer)map.get("Humidity") <= 30 || (Integer)map.get("Humidity") >= 60)) {
+            && ((double)map.get("Humidity") <= 30 || (double)map.get("Humidity") >= 60)) {
             map.put("Comfortable", false);
         } else{
             map.put("Comfortable", true);
@@ -190,7 +190,7 @@ public class AuthService {
                     map1.put("Dosage", map.get("attributeValue"));
                 }
                 if (map.get("attributeName").toString().contains("humidity")) {
-                    map1.put("Humidity", Integer.valueOf(map.get("attributeValue").toString()));
+                    map1.put("Humidity", Double.valueOf(map.get("attributeValue").toString()));
                 }
                 if (map.get("attributeName").toString().contains("temp")) {
                     map1.put("Temp", Double.valueOf(map.get("attributeValue").toString()));
